@@ -75,8 +75,10 @@ final class Format1 {
         List<Occurrence> found = new ArrayList<>();
         for (LogLine l : lines) {
             if (!l.level().problem()) continue;
-            String botLine = l.className().isEmpty() ? RunFacts.UNKNOWN : l.className() + ":" + l.line();
-            String method = l.writerClass().isEmpty() ? RunFacts.UNKNOWN : l.writerClass() + "." + l.writerMethod();
+            String botLine = l.className().isEmpty() ? RunFacts.UNKNOWN
+                    : l.line() < 0 ? l.className() : l.className() + ":" + l.line();
+            String method = l.writerClass().isEmpty() ? RunFacts.UNKNOWN
+                    : l.writerMethod().isEmpty() ? l.writerClass() : l.writerClass() + "." + l.writerMethod();
             Map<String, String> values = new HashMap<>();
             values.put(BOT_LINE, botLine);
             values.put(METHOD, method);

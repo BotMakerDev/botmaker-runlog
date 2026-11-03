@@ -103,7 +103,8 @@ public final class RunLog implements AutoCloseable {
         if (closed || full) return;
         if (bytes >= MAX_BYTES) {
             full = true;
-            append(Format1.json(new LogLine(line.atMillis(), Level.WARN, "RunLog",
+            // INFO, not a problem: a long run is not something to report.
+            append(Format1.json(new LogLine(line.atMillis(), Level.INFO, "RunLog",
                     "The run's log is full; later lines are not kept.", 1, null, "", "", "", -1)));
             return;
         }

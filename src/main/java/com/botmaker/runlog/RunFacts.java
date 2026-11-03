@@ -1,5 +1,6 @@
 package com.botmaker.runlog;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -45,7 +46,7 @@ public record RunFacts(String bot, String tag, String commit, boolean dirty, Map
         map.forEach((k, v) -> {
             if (k != null && !k.isBlank()) kept.put(k.strip(), known(v));
         });
-        return Map.copyOf(kept);
+        return Collections.unmodifiableMap(kept); // sorted: dimensions and the written facts keep one order
     }
 
     /** Facts that know only when the run started and on which OS: a run started outside a host. */
