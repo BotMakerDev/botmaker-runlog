@@ -14,6 +14,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ProblemsTest {
 
     private static final String SCREENS = "com.botmaker.sdk.api.screens.Screens";
+    private static final Scrubber SCRUB = Scrubber.of("/home/someone", "someone", List.of());
+
+    private static String title(Problem p) {
+        return IssueText.title(p, SCRUB);
+    }
 
     private static LogLine call(long t, String text) {
         return new LogLine(t, Level.DEBUG, "Screens", text, 1, null, SCREENS, "goTo", "com.example.Collect", 57);
@@ -40,7 +45,7 @@ class ProblemsTest {
         assertEquals(1, p.firstMillis());
         assertEquals(4991, p.lastMillis());
         assertEquals(Problems.AROUND + 2, p.lines().size(), "its call, the first one and the 20 after it");
-        assertEquals("Warning: Screens.goTo at Collect:57", IssueText.title(p));
+        assertEquals("Warning: Screens.goTo at Collect:57", title(p));
     }
 
     private static LogLine finding(long t, Level level, String why, Map<String, String> values) {
@@ -56,14 +61,22 @@ class ProblemsTest {
                 finding(3, Level.WARN, "Edge missed: Home → Shop, arrived at Bag", Map.of("to", "Shop", "from", "Home"))));
         assertEquals(2, problems.size());
         assertEquals(2, problems.getFirst().count(), "the same edge again is the same problem");
-        assertEquals("Warning: Edge missed: Home → Shop, arrived at Bag", IssueText.title(problems.getFirst()));
-        assertEquals("Warning: Edge missed: Bag → Home, timed out", IssueText.title(problems.get(1)));
+        assertEquals("Warning: Edge missed: Home → Shop, arrived at Bag", title(problems.getFirst()));
+        assertEquals("Warning: Edge missed: Bag → Home, timed out", title(problems.get(1)));
     }
 
     @Test
     void aLongWhyIsCutInTheTitle() {
         Problem p = Problems.of(List.of(finding(1, Level.ERROR, "x".repeat(300), Map.of()))).getFirst();
-        assertEquals("Error: " + "x".repeat(IssueText.TITLE_WHY - 1) + "…", IssueText.title(p));
+        assertEquals("Error: " + "x".repeat(IssueText.TITLE_WHY - 1) + "…", title(p));
+    }
+
+    @Test
+    void aTitleIsScrubbedBeforeItIsCut() {
+        String why = "y".repeat(IssueText.TITLE_WHY - 10) + " /home/someone/BotMakerProjects/bot";
+        Problem p = Problems.of(List.of(finding(1, Level.ERROR, why, Map.of()))).getFirst();
+        assertEquals("Error: " + "y".repeat(IssueText.TITLE_WHY - 10) + " ~/BotMak…", title(p),
+                "the home folder is gone before the cut, so no half of it is left");
     }
 
     @Test

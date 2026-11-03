@@ -42,14 +42,17 @@ public final class IssueText {
     /**
      * {@code Warning: Screens.goTo at Collect:57}; a problem no bot line led to, what it says:
      * {@code Warning: Edge missed: Home → Shop, arrived at Bag}, which tells its issue from the others of its call.
+     * Scrubbed by {@code scrubber} before it is cut, so a path cut in half never slips past it.
      */
-    public static String title(Problem p) {
+    public static String title(Problem p, Scrubber scrubber) {
         if (p.botClass().equals(RunFacts.UNKNOWN)) {
-            String why = p.why().strip().replaceAll("\\s+", " ");
-            return p.level().displayName() + ": "
-                    + (why.length() > TITLE_WHY ? why.substring(0, TITLE_WHY - 1) + "…" : why);
+            String why = scrubber.scrub(p.why()).strip().replaceAll("\\s+", " ");
+            if (why.codePointCount(0, why.length()) > TITLE_WHY) {
+                why = why.substring(0, why.offsetByCodePoints(0, TITLE_WHY - 1)) + "…";
+            }
+            return p.level().displayName() + ": " + why;
         }
-        return p.level().displayName() + ": " + p.calledMethod() + " at " + p.botLine();
+        return scrubber.scrub(p.level().displayName() + ": " + p.calledMethod() + " at " + p.botLine());
     }
 
     /** A fingerprint as the 16 hex characters an issue is found by. */
