@@ -80,6 +80,25 @@ class RunLogTest {
         assertEquals("Title", read.report().occurrences().getFirst().value("plugin.screen"));
         assertEquals("Home", read.report().occurrences().getFirst().value("plugin.to"));
         assertEquals(Map.of(), read.lines().get(1).values());
+        assertTrue(read.report().lines().isEmpty(), "no other line carried values");
+    }
+
+    @Test
+    void anyOtherLineCarryingValuesIsInTheReportsLinesNotItsProblems() throws IOException {
+        try (RunLog log = RunLog.start(root, facts(), CLOCK)) {
+            log.write(new LogLine(5L, Level.INFO, "Screens", "Home: 3 visits", 1, null, "", "", "", -1,
+                    Map.of("screen", "Home", "millis", "1200")));
+            log.write(line(Level.INFO, "no values"));
+            log.write(line(Level.ERROR, "a problem"));
+        }
+        RunLogs.Readable read = read(root.resolve("20261103-101530").resolve(RunLog.FILE));
+
+        assertEquals(1, read.report().occurrences().size());
+        assertEquals(1, read.report().lines().size());
+        assertEquals("Home", read.report().lines().getFirst().value("plugin.screen"));
+        assertEquals("1200", read.report().lines().getFirst().value("plugin.millis"));
+        assertEquals("info", read.report().lines().getFirst().value("level"));
+        assertEquals(1, read.report().plus(read.report()).lines().size() / 2);
     }
 
     @Test

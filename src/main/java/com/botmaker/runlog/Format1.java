@@ -43,8 +43,9 @@ final class Format1 {
     static final String LEVEL = "level";
     static final String BOT_VERSION = "botVersion";
     static final String DETAILS = "details.";
-    /** What a dimension a plugin's line value gives starts with: {@code plugin.screen}. */
-    static final String PLUGIN = "plugin.";
+    static final String PLUGIN = Dimension.PLUGIN;
+    /** The most other lines one run's report keeps ({@link Report#lines()}); a chatty run's rest are dropped. */
+    static final int MAX_LINES = 20_000;
 
     private Format1() {
     }
@@ -71,15 +72,28 @@ final class Format1 {
         return new RunLogs.Readable(1, writer, facts, lines, report(facts, lines));
     }
 
-    /** The problems among {@code lines}: each warning and error, with what it can be grouped by. */
+    /**
+     * The problems among {@code lines}: each warning and error, with what it can be grouped by; every other line
+     * carrying a plugin's values goes in {@link Report#lines()}, with its level, bot version and those values.
+     */
     static Report report(RunFacts facts, List<LogLine> lines) {
         List<Dimension> dims = new ArrayList<>(List.of(new Dimension(BOT_LINE, "Bot line"),
                 new Dimension(METHOD, "Called method"), new Dimension(LEVEL, "Level"),
                 new Dimension(BOT_VERSION, "Bot version")));
         facts.details().keySet().forEach(k -> dims.add(new Dimension(DETAILS + k, k)));
         List<Occurrence> found = new ArrayList<>();
+        List<Occurrence> others = new ArrayList<>();
         for (LogLine l : lines) {
-            if (!l.level().problem()) continue;
+            if (!l.level().problem()) {
+                if (l.values().isEmpty() || others.size() >= MAX_LINES) continue;
+                Map<String, String> values = new HashMap<>();
+                values.put(LEVEL, l.level().id());
+                values.put(BOT_VERSION, facts.tag());
+                plugin(l.values(), values, dims);
+                others.add(new Occurrence(Instant.ofEpochMilli(l.atMillis()), l.level(),
+                        Problems.fingerprint(l), l.count(), values));
+                continue;
+            }
             String botLine = Problems.botLine(l);
             String method = Problems.method(l);
             Map<String, String> values = new HashMap<>();
@@ -92,7 +106,7 @@ final class Format1 {
             found.add(new Occurrence(Instant.ofEpochMilli(l.atMillis()), l.level(),
                     Problems.fingerprint(l), l.count(), values));
         }
-        return new Report(dims, found);
+        return new Report(dims, found, others);
     }
 
     static final String ARGUMENT = "argument";

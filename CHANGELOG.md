@@ -9,6 +9,9 @@ Sections are `## [x.y.z] — YYYY-MM-DD`, newest first.
 
 ### Added
 
+- **`Report.lines`**: every line of a run's log that is no problem but carries a plugin's values, with its level,
+  bot version and `plugin.<key>` values, for a view a plugin declares over all its lines. An issue has none. The
+  two-part constructor is kept. `Dimension.plugin(key)` names a value's dimension.
 - **A plugin's values on a line** (`LogLine.values`): written as `v` in format 1 (a field added, same format; an
   older log reads with none). Each key is a report dimension `plugin.<key>`, in a local log per line, in an issue
   from the problem's first line: its machine block and each comment carry `values`, and its fact table shows them,

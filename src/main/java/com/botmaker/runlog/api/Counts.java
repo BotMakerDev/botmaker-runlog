@@ -66,15 +66,23 @@ public final class Counts {
         return buckets;
     }
 
+    /**
+     * {@code a + b}, held at {@link Integer#MAX_VALUE}: counts are a runner's, and an issue's forged count must not
+     * wrap to a negative total.
+     */
+    public static int add(int a, int b) {
+        return (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, (long) a + b));
+    }
+
     private static List<Count> count(List<Occurrence> occurrences, String dimension) {
         Map<String, Map<Level, Integer>> per = new LinkedHashMap<>();
         for (Occurrence o : occurrences) {
             per.computeIfAbsent(o.value(dimension), k -> new EnumMap<>(Level.class))
-                    .merge(o.level(), o.count(), Integer::sum);
+                    .merge(o.level(), o.count(), Counts::add);
         }
         List<Count> counts = new ArrayList<>();
         per.forEach((value, levels) -> counts.add(
-                new Count(value, levels, levels.values().stream().mapToInt(Integer::intValue).sum())));
+                new Count(value, levels, levels.values().stream().reduce(0, Counts::add))));
         counts.sort(MOST_FIRST);
         return counts;
     }
