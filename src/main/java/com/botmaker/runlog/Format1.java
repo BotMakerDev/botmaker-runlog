@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 /**
  * Format 1, the first: {@code {"format":1,"writer":…,"facts":{…}}}, then one object per line with {@code t}, {@code
@@ -75,10 +76,8 @@ final class Format1 {
         List<Occurrence> found = new ArrayList<>();
         for (LogLine l : lines) {
             if (!l.level().problem()) continue;
-            String botLine = l.className().isEmpty() ? RunFacts.UNKNOWN
-                    : l.line() < 0 ? l.className() : l.className() + ":" + l.line();
-            String method = l.writerClass().isEmpty() ? RunFacts.UNKNOWN
-                    : l.writerMethod().isEmpty() ? l.writerClass() : l.writerClass() + "." + l.writerMethod();
+            String botLine = Problems.botLine(l);
+            String method = Problems.method(l);
             Map<String, String> values = new HashMap<>();
             values.put(BOT_LINE, botLine);
             values.put(METHOD, method);
@@ -86,9 +85,61 @@ final class Format1 {
             values.put(BOT_VERSION, facts.tag());
             facts.details().forEach((k, v) -> values.put(DETAILS + k, v));
             found.add(new Occurrence(Instant.ofEpochMilli(l.atMillis()), l.level(),
-                    botLine + "|" + method + "|" + l.level().id(), l.count(), values));
+                    Problems.fingerprint(l), l.count(), values));
         }
         return new Report(dims, found);
+    }
+
+    static final String ARGUMENT = "argument";
+
+    /**
+     * An issue's machine block in format 1, with its comments: {@code format}, {@code writer}, {@code fingerprint},
+     * {@code level}, {@code botClass}, {@code line}, {@code calledClass}, {@code method}, {@code argument},
+     * {@code botVersion}, {@code commit}, {@code count}, {@code details}; a comment's hidden fields {@code count},
+     * {@code botVersion}, {@code argument}, {@code details}. A comment whose fields do not read is skipped.
+     */
+    static RunLogs.IssueRead issue(JsonNode block, Instant created, List<IssueComment> comments) {
+        String fingerprint = block.path("fingerprint").asText("");
+        if (fingerprint.isBlank()) return new RunLogs.Unreadable("This issue's report names no fingerprint.");
+        Level level = Level.fromId(block.path("level").asText());
+        String botClass = block.path("botClass").asText(RunFacts.UNKNOWN);
+        int line = block.path("line").asInt(-1);
+        String calledClass = block.path("calledClass").asText(RunFacts.UNKNOWN);
+        String method = block.path("method").asText("");
+        String botLine = botClass.equals(RunFacts.UNKNOWN) || line < 0 ? botClass : botClass + ":" + line;
+        String called = calledClass.equals(RunFacts.UNKNOWN) || method.isEmpty() || method.equals(RunFacts.UNKNOWN)
+                ? calledClass : calledClass + "." + method;
+        List<Dimension> dims = new ArrayList<>(List.of(new Dimension(BOT_LINE, "Bot line"),
+                new Dimension(METHOD, "Called method"), new Dimension(ARGUMENT, "Argument"),
+                new Dimension(LEVEL, "Level"), new Dimension(BOT_VERSION, "Bot version")));
+        List<Occurrence> found = new ArrayList<>();
+        List<JsonNode> each = new ArrayList<>(List.of(block));
+        List<Instant> when = new ArrayList<>(List.of(created == null ? Instant.EPOCH : created));
+        for (IssueComment c : comments) {
+            Matcher m = c.body() == null ? null : IssueText.COMMENT.matcher(c.body());
+            JsonNode fields = m != null && m.find() ? parse(m.group(1)) : null;
+            if (fields == null || fields.path("format").asInt(0) != 1) continue;
+            each.add(fields);
+            when.add(c.created() == null ? Instant.EPOCH : c.created());
+        }
+        for (int i = 0; i < each.size(); i++) {
+            JsonNode n = each.get(i);
+            Map<String, String> values = new HashMap<>();
+            values.put(BOT_LINE, botLine);
+            values.put(METHOD, called);
+            values.put(LEVEL, level.id());
+            values.put(BOT_VERSION, n.path("botVersion").asText(RunFacts.UNKNOWN));
+            values.put(ARGUMENT, n.path("argument").asText(RunFacts.UNKNOWN));
+            n.path("details").properties().forEach(e -> {
+                values.put(DETAILS + e.getKey(), e.getValue().asText(RunFacts.UNKNOWN));
+                if (dims.stream().noneMatch(d -> d.id().equals(DETAILS + e.getKey()))) {
+                    dims.add(new Dimension(DETAILS + e.getKey(), e.getKey()));
+                }
+            });
+            found.add(new Occurrence(when.get(i), level, fingerprint, n.path("count").asInt(1), values));
+        }
+        return new RunLogs.ReadableIssue(1, block.path("writer").asText(RunFacts.UNKNOWN), fingerprint,
+                new Report(dims, found));
     }
 
     static String json(LogLine line) {

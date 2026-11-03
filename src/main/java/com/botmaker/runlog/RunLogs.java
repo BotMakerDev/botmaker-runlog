@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Properties;
 
@@ -52,8 +53,42 @@ public final class RunLogs {
         }
     }
 
-    /** A log that could not be read, and why, in words a person reads. */
-    public record Unreadable(String reason) implements Read {
+    /** A log or an issue that could not be read, and why, in words a person reads. */
+    public record Unreadable(String reason) implements Read, IssueRead {
+    }
+
+    /** What reading an issue gave. */
+    public sealed interface IssueRead {
+    }
+
+    /**
+     * An issue read: its problem's occurrences, the body's dated when the issue was opened, each comment
+     * {@link IssueText#comment} wrote dated when it was made.
+     *
+     * @param format      the format its machine block names
+     * @param writer      the coordinate that wrote it, or {@value RunFacts#UNKNOWN}
+     * @param fingerprint its problem's fingerprint
+     * @param report      its occurrences
+     */
+    public record ReadableIssue(int format, String writer, String fingerprint, Report report) implements IssueRead {
+    }
+
+    /**
+     * Reads an issue {@link IssueText} wrote, whatever format: {@code body} opened at {@code created}, with its
+     * {@code comments}. The text is a runner's to forge: a {@code format} or {@code writer} in it is a number and a
+     * name, loads nothing, and a forged one costs an unreadable issue at most.
+     */
+    public static IssueRead readIssue(String body, Instant created, List<IssueComment> comments) {
+        JsonNode block = Format1.parse(IssueText.block(body));
+        if (block == null) return new Unreadable("This issue holds no BotMaker report.");
+        int format = block.path("format").asInt(0);
+        return switch (format) {
+            case 1 -> Format1.issue(block, created, comments == null ? List.of() : comments);
+            default -> format > FORMAT
+                    ? new Unreadable("This issue was written by a newer BotMaker (format " + format
+                            + "). Update Studio to read this log.")
+                    : new Unreadable("This issue names format " + format + ", which no BotMaker wrote.");
+        };
     }
 
     /** Reads {@code file} by the format its first line names. */

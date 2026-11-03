@@ -9,6 +9,16 @@ Sections are `## [x.y.z] — YYYY-MM-DD`, newest first.
 
 ### Added
 
+- **Problems and issue texts** (spec `2026-11-03-run-reports-design.md` §3, §6). `Problems.of` groups a log's
+  warnings and errors by fingerprint (`botClass:line|calledClass.method|level`): at most 10 per run, the rest
+  counted in the last one's `unreported`, each with the 20 lines around its first occurrence and the argument of
+  its own call. `IssueText` writes an issue's title, body (facts, the why, the log, a fenced `botmaker-report`
+  block and a hidden fingerprint marker) and a repeat's comment; `RunLogs.readIssue` reads an issue and its
+  comments back into a `Report`, by format, as it reads a log. Fixtures `formats/1/issue.md` and
+  `issue-comment.md` are kept for good.
+- **`Scrubber`**: what leaves the machine has screen text (`ScreenText`'s marked spans) as `…`, the given hidden
+  texts (other windows' titles) as `…`, the home folder as `~` and the user's name as `<user>`. The run log
+  itself keeps everything.
 - The run log, moved from `botmaker-shared`: `RunLog` writes a run's `run.jsonl` (its facts first, one line per
   `LogLine`, flushed per line, 5 runs kept, capped at 5 MB), `RunLogs.read` reads it back (`Readable` or
   `Unreadable`) and skips a torn last line, `RunFacts` holds what any host knows plus a plugin's own `details`.
