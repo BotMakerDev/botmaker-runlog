@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -40,6 +41,41 @@ class ProblemsTest {
         assertEquals(4991, p.lastMillis());
         assertEquals(Problems.AROUND + 2, p.lines().size(), "its call, the first one and the 20 after it");
         assertEquals("Warning: Screens.goTo at Collect:57", IssueText.title(p));
+    }
+
+    private static LogLine finding(long t, Level level, String why, Map<String, String> values) {
+        return new LogLine(t, level, "ExploreMap", why, 1, null, "com.botmaker.sdk.api.bot.ExploreMap", "explore",
+                "", -1, values);
+    }
+
+    @Test
+    void findingsOfOneCallSiteNoBotLineLedToAreEachTheirOwn() {
+        List<Problem> problems = Problems.of(List.of(
+                finding(1, Level.WARN, "Edge missed: Home → Shop, arrived at Bag", Map.of("from", "Home", "to", "Shop")),
+                finding(2, Level.WARN, "Edge missed: Bag → Home, timed out", Map.of("from", "Bag", "to", "Home")),
+                finding(3, Level.WARN, "Edge missed: Home → Shop, arrived at Bag", Map.of("to", "Shop", "from", "Home"))));
+        assertEquals(2, problems.size());
+        assertEquals(2, problems.getFirst().count(), "the same edge again is the same problem");
+        assertEquals("Warning: Edge missed: Home → Shop, arrived at Bag", IssueText.title(problems.getFirst()));
+        assertEquals("Warning: Edge missed: Bag → Home, timed out", IssueText.title(problems.get(1)));
+    }
+
+    @Test
+    void aLongWhyIsCutInTheTitle() {
+        Problem p = Problems.of(List.of(finding(1, Level.ERROR, "x".repeat(300), Map.of()))).getFirst();
+        assertEquals("Error: " + "x".repeat(IssueText.TITLE_WHY - 1) + "…", IssueText.title(p));
+    }
+
+    @Test
+    void theHostPlatformsOwnProblemsAreNoneOfTheBots() {
+        List<Problem> problems = Problems.of(List.of(
+                new LogLine(1, Level.ERROR, "X11", "BadValue — trapped, not fatal", 1, null,
+                        "com.botmaker.shared.capture.linux.X11ErrorTrap", "report", "", -1),
+                new LogLine(2, Level.ERROR, "Session", "display agent exited", 1, null,
+                        "com.botmaker.session.remote.DisplayAgentProcess", "spawn", "", -1),
+                warn(3, "stuck", "goTo", 57)));
+        assertEquals(1, problems.size());
+        assertEquals("stuck", problems.getFirst().why());
     }
 
     @Test

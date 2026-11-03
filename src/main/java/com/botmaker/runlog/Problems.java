@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * A run's problems, as its report sends them (spec {@code 2026-11-03-run-reports-design.md} §1, §3): each warning
@@ -33,7 +34,7 @@ public final class Problems {
         Map<String, List<Integer>> seen = new LinkedHashMap<>();
         for (int i = 0; i < lines.size(); i++) {
             LogLine l = lines.get(i);
-            if (l.level().problem()) seen.computeIfAbsent(fingerprint(l), k -> new ArrayList<>()).add(i);
+            if (l.level().problem() && !host(l)) seen.computeIfAbsent(fingerprint(l), k -> new ArrayList<>()).add(i);
         }
         List<Problem> problems = new ArrayList<>();
         int unreported = Math.max(0, seen.size() - MAX);
@@ -52,9 +53,27 @@ public final class Problems {
         return problems;
     }
 
-    /** A problem line's identity: bot class and line, called class and method, level; never its text. */
+    /**
+     * A problem line's identity: bot class and line, called class and method, level; never its text. A line no bot
+     * code led to (a plugin's own run, as Explore map) adds its plugin values, which name what it is about: one call
+     * site there says every finding, and each is its own problem ({@code from=Home, to=Shop}).
+     */
     static String fingerprint(LogLine l) {
-        return botLine(l) + "|" + method(l) + "|" + l.level().id();
+        String site = botLine(l) + "|" + method(l) + "|" + l.level().id();
+        if (!l.className().isEmpty() || l.values().isEmpty()) return site;
+        return site + "|" + new TreeMap<>(l.values());
+    }
+
+    /** The host platform's own packages: what they say is about BotMaker on this computer, not about the bot. */
+    private static final List<String> HOST = List.of("com.botmaker.shared.", "com.botmaker.session.");
+
+    /**
+     * Whether {@code l} was said by the host platform (a display that would not open, an X error trapped): never a
+     * problem of the bot's, so never offered as its issue (2026-11-03, the user's call: five of seven issues of a run
+     * were the display's).
+     */
+    static boolean host(LogLine l) {
+        return HOST.stream().anyMatch(l.writerClass()::startsWith);
     }
 
     /** {@code class:line}, the class alone when no line, or unknown. */

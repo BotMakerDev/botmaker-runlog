@@ -36,8 +36,19 @@ public final class IssueText {
     private IssueText() {
     }
 
-    /** {@code Warning: Screens.goTo at Collect:57}. */
+    /** The longest why a title quotes; a longer one is cut with an ellipsis. */
+    static final int TITLE_WHY = 120;
+
+    /**
+     * {@code Warning: Screens.goTo at Collect:57}; a problem no bot line led to, what it says:
+     * {@code Warning: Edge missed: Home → Shop, arrived at Bag}, which tells its issue from the others of its call.
+     */
     public static String title(Problem p) {
+        if (p.botClass().equals(RunFacts.UNKNOWN)) {
+            String why = p.why().strip().replaceAll("\\s+", " ");
+            return p.level().displayName() + ": "
+                    + (why.length() > TITLE_WHY ? why.substring(0, TITLE_WHY - 1) + "…" : why);
+        }
         return p.level().displayName() + ": " + p.calledMethod() + " at " + p.botLine();
     }
 
@@ -60,10 +71,17 @@ public final class IssueText {
     public static String body(Problem p, RunFacts facts, Scrubber scrubber) {
         RunFacts f = scrubber.scrub(facts);
         StringBuilder b = new StringBuilder();
-        b.append("**").append(p.level().displayName()).append("** at `").append(span(scrubber.scrub(p.botClass())))
-                .append(p.line() < 0 ? "" : ":" + p.line()).append("`, calling `").append(span(p.calledMethod()))
-                .append('(').append(span(scrubber.scrub(p.argument().equals(RunFacts.UNKNOWN) ? "" : p.argument())))
-                .append(")`, ×").append(p.count()).append(" in one run.\n\n");
+        if (p.botClass().equals(RunFacts.UNKNOWN)) {
+            // No bot line led to it: what said it is all there is to name.
+            b.append("**").append(p.level().displayName()).append("**, said by `").append(span(p.calledMethod()))
+                    .append("`, ×").append(p.count()).append(" in one run.\n\n");
+        } else {
+            b.append("**").append(p.level().displayName()).append("** at `")
+                    .append(span(scrubber.scrub(p.botClass()))).append(p.line() < 0 ? "" : ":" + p.line())
+                    .append("`, calling `").append(span(p.calledMethod())).append('(')
+                    .append(span(scrubber.scrub(p.argument().equals(RunFacts.UNKNOWN) ? "" : p.argument())))
+                    .append(")`, ×").append(p.count()).append(" in one run.\n\n");
+        }
         b.append(quote(scrubber.scrub(p.why()))).append("\n\n");
         if (p.unreported() > 0) {
             b.append("The run met ").append(p.unreported()).append(" more problem")

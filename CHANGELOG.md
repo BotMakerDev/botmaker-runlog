@@ -7,6 +7,15 @@ Sections are `## [x.y.z] — YYYY-MM-DD`, newest first.
 
 ## [Unreleased]
 
+### Changed
+
+- **A problem no bot line led to is one per thing it is about** (`Problems.fingerprint`): its line's values join
+  its identity, so a plugin's own run that says every finding from one call (Explore map) opens one issue per
+  finding, not one ×N. Its title is what it says (`Warning: Edge missed: Home → Shop, arrived at Bag`, cut at 120
+  characters), its body names what said it, not `unknown`.
+- **The host platform's problems are not the bot's** (`Problems.of`): a line said by `com.botmaker.shared.*` or
+  `com.botmaker.session.*` (a display agent that would not spawn, an X error trapped) is never offered as an issue.
+
 ### Added
 
 - **`Report.lines`**: every line of a run's log that is no problem but carries a plugin's values, with its level,
