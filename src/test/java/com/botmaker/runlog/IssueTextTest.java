@@ -110,6 +110,43 @@ class IssueTextTest {
     }
 
     @Test
+    void aPluginsValuesGoScrubbedIntoTheIssueAndItsCommentsAndReadBack() {
+        LogLine line = new LogLine(1762164932000L, Level.WARN, "Screens", "stuck", 1, null,
+                "com.botmaker.sdk.api.screens.Screens", "goTo", "com.example.Collect", 57,
+                Map.of("screen", "Title", "target", "/home/ben/game"));
+        Problem p = new Problem("com.example.Collect:57|com.botmaker.sdk.api.screens.Screens.goTo|warn", Level.WARN,
+                "com.example.Collect", 57, "com.botmaker.sdk.api.screens.Screens", "goTo", "Home", "stuck", 1,
+                1762164932000L, 1762164932000L, List.of(line), 0);
+        String body = IssueText.body(p, FACTS, SCRUB);
+        String comment = IssueText.comment(p, FACTS, SCRUB);
+
+        assertTrue(body.contains("| screen | Title |"), body);
+        assertTrue(!body.contains("/home/ben") && !comment.contains("/home/ben"), body + comment);
+        RunLogs.ReadableIssue read = assertInstanceOf(RunLogs.ReadableIssue.class, RunLogs.readIssue(body, OPENED,
+                List.of(new IssueComment(comment, OPENED.plusSeconds(60)))));
+        assertTrue(read.report().dimensions().contains(new Dimension("plugin.screen", "screen")));
+        for (Occurrence o : read.report().occurrences()) {
+            assertEquals("Title", o.value("plugin.screen"));
+            assertEquals("~/game", o.value("plugin.target"));
+        }
+        assertEquals(2, read.report().occurrences().size());
+    }
+
+    @Test
+    void aForgedBlocksValuesAreCapped() {
+        StringBuilder many = new StringBuilder();
+        for (int i = 0; i < 100; i++) many.append("\"k").append(i).append("\":\"").append("x".repeat(500)).append("\",");
+        String block = IssueText.fenced(IssueText.BLOCK, "{\"format\":1,\"fingerprint\":\"a|b|warn\",\"level\":\"warn\","
+                + "\"values\":{" + many + "\"nested\":{\"a\":1}}}\n");
+        RunLogs.ReadableIssue read = assertInstanceOf(RunLogs.ReadableIssue.class,
+                RunLogs.readIssue(block, OPENED, List.of()));
+
+        Occurrence o = read.report().occurrences().getFirst();
+        assertEquals(LogLine.MAX_VALUES, o.values().keySet().stream().filter(k -> k.startsWith("plugin.")).count());
+        assertEquals(LogLine.MAX_VALUE, o.value("plugin.k0").length());
+    }
+
+    @Test
     void aNewerOrMissingBlockIsUnreadable() {
         String newer = IssueText.fenced(IssueText.BLOCK, "{\"format\":" + (RunLogs.FORMAT + 1) + "}\n");
         RunLogs.Unreadable read = assertInstanceOf(RunLogs.Unreadable.class, RunLogs.readIssue(newer, OPENED, null));

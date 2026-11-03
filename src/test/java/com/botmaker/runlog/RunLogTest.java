@@ -63,6 +63,26 @@ class RunLogTest {
     }
 
     @Test
+    void aPluginsValuesReadBackAndBecomeDimensions() throws IOException {
+        LogLine moved = new LogLine(5L, Level.WARN, "Screens", "stuck", 1, null, "x.Screens", "goTo",
+                "com.example.Collect", 57, Map.of("screen", "Title", "to", "Home"));
+        try (RunLog log = RunLog.start(root, facts(), CLOCK)) {
+            log.write(moved);
+            log.write(line(Level.ERROR, "no values"));
+        }
+        Path file = root.resolve("20261103-101530").resolve(RunLog.FILE);
+        assertTrue(Files.readAllLines(file).get(1).contains("\"v\":{"));
+        RunLogs.Readable read = read(file);
+
+        assertEquals(moved, read.lines().getFirst());
+        assertTrue(read.report().dimensions().stream().anyMatch(d -> d.id().equals("plugin.screen")
+                && d.label().equals("screen")));
+        assertEquals("Title", read.report().occurrences().getFirst().value("plugin.screen"));
+        assertEquals("Home", read.report().occurrences().getFirst().value("plugin.to"));
+        assertEquals(Map.of(), read.lines().get(1).values());
+    }
+
+    @Test
     void theWriterNamesThisJarsVersion() {
         assertTrue(RunLogs.WRITER.matches("com\\.github\\.BotMakerDev:botmaker-runlog:\\d+\\.\\d+\\.\\d+.*"),
                 RunLogs.WRITER);

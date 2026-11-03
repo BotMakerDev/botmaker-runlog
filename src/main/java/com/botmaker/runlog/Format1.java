@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -25,7 +26,8 @@ import java.util.regex.Matcher;
 /**
  * Format 1, the first: {@code {"format":1,"writer":…,"facts":{…}}}, then one object per line with {@code t}, {@code
  * level}, {@code source}, {@code text} and, when they say something, {@code count}, {@code rect} ({@code [x,y,w,h]}),
- * {@code writerClass}, {@code writerMethod}, {@code class} and {@code line}. Kept as it is for good: a log written in
+ * {@code writerClass}, {@code writerMethod}, {@code class}, {@code line} and {@code v} (a plugin's values, an
+ * object of texts; each a report dimension {@code plugin.<key>}). Kept as it is for good: a log written in
  * it reads through it whatever format follows.
  *
  * <p>Tolerant both ways: a field it does not know is ignored, a field missing reads as unknown, so a log a newer
@@ -41,6 +43,8 @@ final class Format1 {
     static final String LEVEL = "level";
     static final String BOT_VERSION = "botVersion";
     static final String DETAILS = "details.";
+    /** What a dimension a plugin's line value gives starts with: {@code plugin.screen}. */
+    static final String PLUGIN = "plugin.";
 
     private Format1() {
     }
@@ -84,6 +88,7 @@ final class Format1 {
             values.put(LEVEL, l.level().id());
             values.put(BOT_VERSION, facts.tag());
             facts.details().forEach((k, v) -> values.put(DETAILS + k, v));
+            plugin(l.values(), values, dims);
             found.add(new Occurrence(Instant.ofEpochMilli(l.atMillis()), l.level(),
                     Problems.fingerprint(l), l.count(), values));
         }
@@ -95,8 +100,8 @@ final class Format1 {
     /**
      * An issue's machine block in format 1, with its comments: {@code format}, {@code writer}, {@code fingerprint},
      * {@code level}, {@code botClass}, {@code line}, {@code calledClass}, {@code method}, {@code argument},
-     * {@code botVersion}, {@code commit}, {@code count}, {@code details}; a comment's hidden fields {@code count},
-     * {@code botVersion}, {@code argument}, {@code details}. A comment whose fields do not read is skipped.
+     * {@code botVersion}, {@code commit}, {@code count}, {@code details}, {@code values}; a comment's hidden fields
+     * {@code count}, {@code botVersion}, {@code argument}, {@code details}, {@code values}. A comment whose fields do not read is skipped.
      */
     static RunLogs.IssueRead issue(JsonNode block, Instant created, List<IssueComment> comments) {
         String fingerprint = block.path("fingerprint").asText("");
@@ -139,6 +144,7 @@ final class Format1 {
                     dims.add(new Dimension(DETAILS + e.getKey(), e.getKey()));
                 }
             });
+            plugin(values(n.path("values")), values, dims);
             found.add(new Occurrence(when.get(i), level, fingerprint, n.path("count").asInt(1), values));
         }
         return new RunLogs.ReadableIssue(1, block.path("writer").asText(RunFacts.UNKNOWN), fingerprint,
@@ -160,6 +166,10 @@ final class Format1 {
         if (!line.writerMethod().isEmpty()) node.put("writerMethod", line.writerMethod());
         if (!line.className().isEmpty()) node.put("class", line.className());
         if (line.line() >= 0) node.put("line", line.line());
+        if (!line.values().isEmpty()) {
+            ObjectNode v = node.putObject("v");
+            line.values().forEach(v::put);
+        }
         return node.toString();
     }
 
@@ -190,6 +200,28 @@ final class Format1 {
         return new LogLine(node.path("t").asLong(), Level.fromId(node.path("level").asText()),
                 node.path("source").asText(), node.path("text").asText(), node.path("count").asInt(1), rect,
                 node.path("writerClass").asText(), node.path("writerMethod").asText(),
-                node.path("class").asText(), node.path("line").asInt(-1));
+                node.path("class").asText(), node.path("line").asInt(-1), values(node.path("v")));
+    }
+
+    /**
+     * The scalar fields of {@code node} as text, in order, an object's {@code v} or a block's {@code values}, capped as
+     * a line keeps them ({@link LogLine#kept}); a nested one is skipped; empty if none.
+     */
+    static Map<String, String> values(JsonNode node) {
+        Map<String, String> values = new LinkedHashMap<>();
+        if (node != null && node.isObject()) node.properties().forEach(e -> {
+            if (values.size() < LogLine.MAX_VALUES && e.getValue().isValueNode() && !e.getValue().isNull()) {
+                values.put(e.getKey(), e.getValue().asText());
+            }
+        });
+        return LogLine.kept(values);
+    }
+
+    /** Each of {@code values} as its {@value #PLUGIN} dimension, into {@code into}; met keys added to {@code dims}. */
+    private static void plugin(Map<String, String> values, Map<String, String> into, List<Dimension> dims) {
+        values.forEach((k, v) -> {
+            into.put(PLUGIN + k, v);
+            if (dims.stream().noneMatch(d -> d.id().equals(PLUGIN + k))) dims.add(new Dimension(PLUGIN + k, k));
+        });
     }
 }

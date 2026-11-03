@@ -74,6 +74,7 @@ public final class IssueText {
         row(b, "Version", f.tag() + " (" + f.commit() + (f.dirty() ? ", changed" : "") + ")");
         row(b, "OS", f.os());
         f.details().forEach((k, v) -> row(b, k, v));
+        scrubber.scrub(p.values()).forEach((k, v) -> row(b, k, v));
         f.versions().forEach((k, v) -> row(b, k, v));
         b.append('\n');
         StringBuilder log = new StringBuilder();
@@ -103,6 +104,7 @@ public final class IssueText {
         m.put("botVersion", f.tag());
         m.put("argument", scrubber.scrub(p.argument()));
         details(m, f.details());
+        values(m, scrubber.scrub(p.values()));
         b.append("<!-- botmaker:").append(hidden(m.toString())).append(" -->\n");
         return b.toString();
     }
@@ -122,12 +124,20 @@ public final class IssueText {
         m.put("commit", f.commit());
         m.put("count", p.count());
         details(m, f.details());
+        values(m, scrubber.scrub(p.values()));
         return m;
     }
 
     private static void details(ObjectNode m, Map<String, String> details) {
         ObjectNode d = m.putObject("details");
         details.forEach(d::put);
+    }
+
+    /** The plugin values of the problem's first line, when it carried any. */
+    private static void values(ObjectNode m, Map<String, String> values) {
+        if (values.isEmpty()) return;
+        ObjectNode v = m.putObject("values");
+        values.forEach(v::put);
     }
 
     /** JSON fit for an HTML comment: no {@code >} to end it early. */

@@ -63,10 +63,10 @@ public final class Scrubber {
         return user == null ? out : user.matcher(out).replaceAll(Matcher.quoteReplacement(USER));
     }
 
-    /** {@code line} with its text scrubbed. */
+    /** {@code line} with its text and its plugin values scrubbed. */
     public LogLine scrub(LogLine line) {
         return new LogLine(line.atMillis(), line.level(), line.source(), scrub(line.text()), line.count(), line.rect(),
-                line.writerClass(), line.writerMethod(), line.className(), line.line());
+                line.writerClass(), line.writerMethod(), line.className(), line.line(), scrub(line.values()));
     }
 
     /** {@code facts} with every text scrubbed. */

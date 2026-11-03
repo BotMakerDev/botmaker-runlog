@@ -4,6 +4,7 @@ import com.botmaker.runlog.api.Level;
 import com.botmaker.runlog.api.LogLine;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * One problem of a run (spec {@code 2026-11-03-run-reports-design.md} §1, §3): every warning or error with one
@@ -39,6 +40,12 @@ public record Problem(String fingerprint, Level level, String botClass, int line
     /** {@code Screens.goTo}, the called class's simple name and its method. */
     public String calledMethod() {
         return simple(calledClass) + (method.equals(RunFacts.UNKNOWN) ? "" : "." + method);
+    }
+
+    /** The plugin values of its first line, which {@link #lines} hold; empty when it carried none. */
+    public Map<String, String> values() {
+        return lines.stream().filter(l -> l.atMillis() == firstMillis && Problems.fingerprint(l).equals(fingerprint))
+                .findFirst().map(LogLine::values).orElse(Map.of());
     }
 
     static String simple(String className) {

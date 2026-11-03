@@ -9,6 +9,10 @@ Sections are `## [x.y.z] — YYYY-MM-DD`, newest first.
 
 ### Added
 
+- **A plugin's values on a line** (`LogLine.values`): written as `v` in format 1 (a field added, same format; an
+  older log reads with none). Each key is a report dimension `plugin.<key>`, in a local log per line, in an issue
+  from the problem's first line: its machine block and each comment carry `values`, and its fact table shows them,
+  all scrubbed like the line's text.
 - **`ReportTarget`** moved in from shared, public: the `owner/repo` a bot's reports go to (`of(botFolder)` reads
   `upstream`, else `origin`, worktrees included; `parse("o/r")` checks each name). The CLI's `botmaker reports`
   and Studio read it without shared.
