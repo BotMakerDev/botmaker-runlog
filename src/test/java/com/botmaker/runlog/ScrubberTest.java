@@ -37,6 +37,12 @@ class ScrubberTest {
         assertEquals("focus moved to …", scrubber.scrub("focus moved to Inbox — Mail"));
         assertEquals("{\"path\":\"~\\\\bots\"}",
                 Scrubber.of("C:\\Users\\Ben", "Ben", List.of()).scrub("{\"path\":\"C:\\\\Users\\\\Ben\\\\bots\"}"));
+        assertEquals("~/x by <user>", Scrubber.of("C:\\Users\\Ben", "Ben", List.of()).scrub("c:/users/BEN/x by ben"),
+                "any case, any separator");
+        assertEquals("/home/bento stays", scrubber.scrub("/home/bento stays"), "another folder is not the home");
+        assertEquals("[…]", Scrubber.of(null, null, List.of("say \"hi\"")).scrub("[say \\\"hi\\\"]"),
+                "a hidden title as JSON escapes it");
+        assertEquals("…", ScreenText.hide(ScreenText.mark("name" + ScreenText.CLOSE + " secret")));
         RunFacts facts = scrubber.scrub(new RunFacts("b", "v1", "c", false, Map.of(), "Linux", 0,
                 Map.of("Folder", "/home/ben/game")));
         assertEquals("~/game", facts.details().get("Folder"));

@@ -116,8 +116,11 @@ final class Format1 {
         List<JsonNode> each = new ArrayList<>(List.of(block));
         List<Instant> when = new ArrayList<>(List.of(created == null ? Instant.EPOCH : created));
         for (IssueComment c : comments) {
+            // The last hidden block: the comment writes its own after the visible line, which may quote another.
+            String last = null;
             Matcher m = c.body() == null ? null : IssueText.COMMENT.matcher(c.body());
-            JsonNode fields = m != null && m.find() ? parse(m.group(1)) : null;
+            while (m != null && m.find()) last = m.group(1);
+            JsonNode fields = last == null ? null : parse(last);
             if (fields == null || fields.path("format").asInt(0) != 1) continue;
             each.add(fields);
             when.add(c.created() == null ? Instant.EPOCH : c.created());

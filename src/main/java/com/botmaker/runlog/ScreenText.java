@@ -23,7 +23,9 @@ public final class ScreenText {
 
     /** {@code text} marked as read off the screen. */
     public static String mark(String text) {
-        return OPEN + (text == null ? "null" : text) + CLOSE;
+        // A mark the screen itself showed is dropped, so it cannot close the span early.
+        String inner = text == null ? "null" : text.replace(String.valueOf(OPEN), "").replace(String.valueOf(CLOSE), "");
+        return OPEN + inner + CLOSE;
     }
 
     /** {@code text} with each marked span, markers included, as {@link #HIDDEN}; an unclosed one to the end. */

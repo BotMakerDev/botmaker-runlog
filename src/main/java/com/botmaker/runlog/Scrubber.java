@@ -2,6 +2,7 @@ package com.botmaker.runlog;
 
 import com.botmaker.runlog.api.LogLine;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -23,7 +25,7 @@ public final class Scrubber {
     public static final String USER = "<user>";
 
     private final List<String> hidden;
-    private final Map<String, String> homes;
+    private final Pattern home;
     private final Pattern user;
 
     private Scrubber(String home, String user, Collection<String> hidden) {
@@ -32,16 +34,14 @@ public final class Scrubber {
                 // as JSON escapes it too: an export scrubs run.jsonl's raw lines
                 .flatMap(t -> Stream.of(t, t.replace("\\", "\\\\").replace("\"", "\\\""))).distinct()
                 .sorted(Comparator.comparingInt(String::length).reversed()).toList();
-        Map<String, String> h = new LinkedHashMap<>();
-        if (home != null && home.strip().length() > 1) {
-            String strip = home.strip().replaceAll("[/\\\\]+$", "");
-            h.put(strip, "~");
-            h.put(strip.replace('\\', '/'), "~");
-            h.put(strip.replace("\\", "\\\\"), "~"); // as JSON escapes it
-        }
-        this.homes = h;
+        String strip = home == null ? "" : home.strip().replaceAll("[/\\\\]+$", "");
+        // Any case (Windows and macOS paths ignore it) and any separator: '/', '\', or '\\' as JSON escapes it.
+        this.home = strip.length() < 2 ? null : Pattern.compile(Arrays.stream(strip.split("[/\\\\]+"))
+                .map(Pattern::quote).collect(Collectors.joining("[/\\\\]+")) + "(?![\\p{L}\\p{N}_])",
+                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
         this.user = user == null || user.isBlank() ? null
-                : Pattern.compile("(?<![\\p{L}\\p{N}_])" + Pattern.quote(user.strip()) + "(?![\\p{L}\\p{N}_])");
+                : Pattern.compile("(?<![\\p{L}\\p{N}_])" + Pattern.quote(user.strip()) + "(?![\\p{L}\\p{N}_])",
+                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     }
 
     /** A scrubber for {@code home} and {@code user}, hiding {@code hidden} texts too. */
@@ -59,7 +59,7 @@ public final class Scrubber {
         if (text == null) return null;
         String out = ScreenText.hide(text);
         for (String h : hidden) out = out.replace(h, ScreenText.HIDDEN);
-        for (Map.Entry<String, String> e : homes.entrySet()) out = out.replace(e.getKey(), e.getValue());
+        if (home != null) out = home.matcher(out).replaceAll("~");
         return user == null ? out : user.matcher(out).replaceAll(Matcher.quoteReplacement(USER));
     }
 
