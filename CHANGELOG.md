@@ -9,6 +9,9 @@ Sections are `## [x.y.z] — YYYY-MM-DD`, newest first.
 
 ### Added
 
+- **`ReportTarget`** moved in from shared, public: the `owner/repo` a bot's reports go to (`of(botFolder)` reads
+  `upstream`, else `origin`, worktrees included; `parse("o/r")` checks each name). The CLI's `botmaker reports`
+  and Studio read it without shared.
 - **Problems and issue texts** (spec `2026-11-03-run-reports-design.md` §3, §6). `Problems.of` groups a log's
   warnings and errors by fingerprint (`botClass:line|calledClass.method|level`): at most 10 per run, the rest
   counted in the last one's `unreported`, each with the 20 lines around its first occurrence and the argument of
