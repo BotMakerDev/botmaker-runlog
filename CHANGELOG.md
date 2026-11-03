@@ -1,0 +1,21 @@
+# Changelog
+
+What each released version of `botmaker-runlog` changes, in a few bullets. It is what the release publishes as
+the GitHub Release body, and the release refuses to cut a version with no section here.
+
+Sections are `## [x.y.z] — YYYY-MM-DD`, newest first.
+
+## [Unreleased]
+
+### Added
+
+- The run log, moved from `botmaker-shared`: `RunLog` writes a run's `run.jsonl` (its facts first, one line per
+  `LogLine`, flushed per line, 5 runs kept, capped at 5 MB), `RunLogs.read` reads it back (`Readable` or
+  `Unreadable`) and skips a torn last line, `RunFacts` holds what any host knows plus a plugin's own `details`.
+- Every format's reader stays in this jar for good (`Format1`, its fixture under `src/test/resources/formats/1/`);
+  nothing is loaded at run time. A log in a newer format reads as *Update Studio to read this log*.
+- Every log's first line names its format and writer: `{"format":1,"writer":"com.github.BotMakerDev:botmaker-runlog:<version>","facts":{…}}`.
+  A reader ignores fields it does not know and reads missing ones as `unknown`.
+- `com.botmaker.runlog.api`: `LogLine`, `Level`, and the shape reports are counted from: `Report`, `Dimension`,
+  `Occurrence`, `Counts.by` and `Counts.overTime`. A read log's warnings and errors are its `Report`, grouped by
+  bot line, called method, level, bot version and each of the plugin's `details`.

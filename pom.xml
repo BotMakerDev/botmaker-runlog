@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      groupId is com.github.BotMakerDev, as in every module: JitPack serves this repo under it, so the reactor's
+      GAV is the published one. The version is real: -SNAPSHOT on main, the release version on a tag; only the
+      release moves it (umbrella docs/refactor/43-real-versions.md).
+    -->
+    <groupId>com.github.BotMakerDev</groupId>
+    <artifactId>botmaker-runlog</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+
+    <!--
+      The run log's format: writer, reader, issue text, and the fixed shape (com.botmaker.runlog.api) every reader
+      of reports counts from. Jackson only, nothing of BotMaker's: Studio loads an older release of this jar in a
+      class loader of its own to read an older format (spec docs/superpowers/specs/2026-11-03-run-reports-design.md
+      §6), so it must stand alone.
+    -->
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- In step with shared's, the SDK's and Studio's 2.17.0. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.17.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- runlog.properties carries this jar's version: the `writer` every log names. -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <!-- Pinned for JitPack: its Maven defaults the compiler to 3.1, which ignores maven.compiler.release
+                 (botmaker-studio-api/pom.xml has the account). 3.11.0, not newer: 3.12.0 needs Maven 3.6.3. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

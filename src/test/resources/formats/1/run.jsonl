@@ -1,0 +1,4 @@
+{"format":1,"writer":"com.github.BotMakerDev:botmaker-runlog:0.1.0","facts":{"bot":"com.example:bot","tag":"v1.2.0","commit":"abc1234","dirty":false,"versions":{"botmaker-sdk":"2.0.0"},"os":"Linux 7.2","startMillis":1762164930000,"details":{"Flow":"Collect"}}}
+{"t":1762164931000,"level":"debug","source":"Vision","text":"find(ORE) → miss","writerClass":"com.botmaker.sdk.api.vision.ImageFinder","writerMethod":"find","class":"com.example.Collect","line":42}
+{"t":1762164932000,"level":"warn","source":"Screens","text":"stuck on Home","count":3,"rect":[1,2,3,4],"writerClass":"com.botmaker.sdk.api.screens.Screens","writerMethod":"goTo","class":"com.example.Collect","line":57}
+{"t":1762164933000,"level":"error","source":"Screens","text":"Upkeep is missing","writerClass":"com.botmaker.sdk.api.screens.Screens","writerMethod":"goTo","class":"com.example.Upkeep","line":12}
