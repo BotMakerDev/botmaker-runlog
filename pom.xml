@@ -11,7 +11,7 @@
     -->
     <groupId>com.github.BotMakerDev</groupId>
     <artifactId>botmaker-runlog</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1-SNAPSHOT</version>
 
     <!--
       The run log's format: writer, reader, issue text, and the fixed shape (com.botmaker.runlog.api) every reader
