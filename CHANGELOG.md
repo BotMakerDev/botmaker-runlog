@@ -5,7 +5,7 @@ the GitHub Release body, and the release refuses to cut a version with no sectio
 
 Sections are `## [x.y.z] — YYYY-MM-DD`, newest first.
 
-## [Unreleased]
+## [0.1.0] — 2026-11-10
 
 ### Changed
 
