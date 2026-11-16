@@ -12,6 +12,12 @@
     <groupId>com.github.BotMakerDev</groupId>
     <artifactId>botmaker-runlog</artifactId>
     <version>0.1.1-SNAPSHOT</version>
+    <licenses>
+        <license>
+            <name>PolyForm-Noncommercial-1.0.0</name>
+            <url>https://polyformproject.org/licenses/noncommercial/1.0.0</url>
+        </license>
+    </licenses>
 
     <!--
       The run log's format: writer, reader, issue text, and the fixed shape (com.botmaker.runlog.api) every reader

@@ -29,7 +29,7 @@ project:
     reader of reports counts from. Depends on Jackson only; nothing of BotMaker's.
   authors:
     - LiQiyeDev
-  license: CC0-1.0
+  license: PolyForm-Noncommercial-1.0.0
   copyright: LiQiyeDev
   inceptionYear: '2026'
   links:
