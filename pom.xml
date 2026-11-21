@@ -11,7 +11,7 @@
     -->
     <groupId>com.github.BotMakerDev</groupId>
     <artifactId>botmaker-runlog</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.1-SNAPSHOT</version>
     <licenses>
         <license>
             <name>PolyForm-Noncommercial-1.0.0</name>
